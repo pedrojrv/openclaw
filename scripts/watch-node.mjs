@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import process from "node:process";
 
 const args = process.argv.slice(2);
@@ -13,27 +13,17 @@ if (args.length > 0) {
   env.OPENCLAW_WATCH_COMMAND = args.join(" ");
 }
 
-const initialBuild = spawnSync("pnpm", ["exec", compiler], {
-  cwd,
-  env,
-  stdio: "inherit",
-});
+const command = [process.execPath, "openclaw.mjs", ...args].join(" ");
 
-if (initialBuild.status !== 0) {
-  process.exit(initialBuild.status ?? 1);
-}
-
-const compilerProcess = spawn("pnpm", ["exec", compiler, "--watch"], {
-  cwd,
-  env,
-  stdio: "inherit",
-});
-
-const nodeProcess = spawn(process.execPath, ["--watch", "openclaw.mjs", ...args], {
-  cwd,
-  env,
-  stdio: "inherit",
-});
+const compilerProcess = spawn(
+  "pnpm",
+  ["exec", compiler, "--watch", "--on-success", command],
+  {
+    cwd,
+    env,
+    stdio: "inherit",
+  },
+);
 
 let exiting = false;
 
@@ -42,7 +32,6 @@ function cleanup(code = 0) {
     return;
   }
   exiting = true;
-  nodeProcess.kill("SIGTERM");
   compilerProcess.kill("SIGTERM");
   process.exit(code);
 }
@@ -52,13 +41,6 @@ process.on("SIGTERM", () => cleanup(143));
 
 compilerProcess.on("exit", (code) => {
   if (exiting) {
-    return;
-  }
-  cleanup(code ?? 1);
-});
-
-nodeProcess.on("exit", (code, signal) => {
-  if (signal || exiting) {
     return;
   }
   cleanup(code ?? 1);
