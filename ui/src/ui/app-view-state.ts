@@ -194,6 +194,7 @@ export type AppViewState = {
   skillsReport: SkillStatusReport | null;
   skillsError: string | null;
   skillsFilter: string;
+  skillsFilterStatus: "all" | "enabled" | "disabled";
   skillEdits: Record<string, string>;
   skillMessages: Record<string, SkillMessage>;
   skillsBusyKey: string | null;
