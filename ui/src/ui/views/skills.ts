@@ -14,10 +14,12 @@ export type SkillsProps = {
   report: SkillStatusReport | null;
   error: string | null;
   filter: string;
+  filterStatus: "all" | "enabled" | "disabled";
   edits: Record<string, string>;
   busyKey: string | null;
   messages: SkillMessageMap;
   onFilterChange: (next: string) => void;
+  onFilterStatusChange: (next: "all" | "enabled" | "disabled") => void;
   onRefresh: () => void;
   onToggle: (skillKey: string, enabled: boolean) => void;
   onEdit: (skillKey: string, value: string) => void;
@@ -28,11 +30,19 @@ export type SkillsProps = {
 export function renderSkills(props: SkillsProps) {
   const skills = props.report?.skills ?? [];
   const filter = props.filter.trim().toLowerCase();
-  const filtered = filter
-    ? skills.filter((skill) =>
-        [skill.name, skill.description, skill.source].join(" ").toLowerCase().includes(filter),
-      )
-    : skills;
+  let filtered = skills;
+
+  if (props.filterStatus === "enabled") {
+    filtered = filtered.filter((skill) => !skill.disabled);
+  } else if (props.filterStatus === "disabled") {
+    filtered = filtered.filter((skill) => skill.disabled);
+  }
+
+  if (filter) {
+    filtered = filtered.filter((skill) =>
+      [skill.name, skill.description, skill.source].join(" ").toLowerCase().includes(filter),
+    );
+  }
   const groups = groupSkills(filtered);
 
   return html`
@@ -55,6 +65,23 @@ export function renderSkills(props: SkillsProps) {
             @input=${(e: Event) => props.onFilterChange((e.target as HTMLInputElement).value)}
             placeholder="Search skills"
           />
+        </label>
+        <label class="field">
+          <span>Status</span>
+          <div class="select-wrapper">
+            <select
+              @change=${(e: Event) =>
+                props.onFilterStatusChange(
+                  (e.target as HTMLSelectElement).value as "all" | "enabled" | "disabled",
+                )}
+            >
+              <option value="all" ?selected=${props.filterStatus === "all"}>All</option>
+              <option value="enabled" ?selected=${props.filterStatus === "enabled"}>Enabled</option>
+              <option value="disabled" ?selected=${props.filterStatus === "disabled"}>
+                Disabled
+              </option>
+            </select>
+          </div>
         </label>
         <div class="muted">${filtered.length} shown</div>
       </div>
